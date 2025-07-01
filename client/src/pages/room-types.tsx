@@ -37,7 +37,7 @@ export default function RoomTypes() {
   const [editingRoomType, setEditingRoomType] = useState<RoomType | null>(null);
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { data: roomTypes, isLoading } = useQuery<RoomType[]>({
     queryKey: ["/api/room-types"],
     enabled: isAuthenticated,
@@ -151,7 +151,7 @@ export default function RoomTypes() {
 
   const onSubmit = (data: RoomTypeFormData) => {
     console.log("Form submitted with data:", data);
-    
+
     const submitData = {
       name: data.name,
       description: data.description || null,
@@ -159,7 +159,7 @@ export default function RoomTypes() {
       maxOccupancy: data.maxOccupancy,
       branchId: data.branchId || null,
     };
-    
+
     if (editingRoomType) {
       console.log("Updating room type:", editingRoomType.id);
       updateMutation.mutate({ id: editingRoomType.id, data: submitData });
@@ -218,7 +218,7 @@ export default function RoomTypes() {
       }, 500);
       return;
     }
-    
+
     if (!authLoading && isAuthenticated && user && user.role !== "superadmin") {
       toast({
         title: "Access Denied",
@@ -264,19 +264,25 @@ export default function RoomTypes() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar
+        isMobileMenuOpen={isMobileSidebarOpen}
+        setIsMobileMenuOpen={setIsMobileSidebarOpen}
+      />
+
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 overflow-auto p-4 md:p-8">
           <Header
             title="Room Types"
             subtitle="Manage room categories and pricing"
+            onMobileMenuToggle={() =>
+              setIsMobileSidebarOpen(!isMobileSidebarOpen)
+            }
           />
-
           {/* Add Button Section */}
           <div className="mt-4 mb-6">
             <Dialog open={isCreateOpen || !!editingRoomType} onOpenChange={handleCloseDialog}>
               <DialogTrigger asChild>
-                <Button 
+                <Button
                   onClick={() => {
                     console.log("Add Room Type button clicked");
                     setIsCreateOpen(true);
@@ -412,82 +418,82 @@ export default function RoomTypes() {
           </div>
 
           <div>
-          {!roomTypes || roomTypes.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-8 md:py-12 px-4">
-                <SquareStack className="h-10 w-10 md:h-12 md:w-12 text-gray-400 mb-4" />
-                <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2 text-center">No room types found</h3>
-                <p className="text-sm md:text-base text-gray-600 text-center mb-4 max-w-sm">
-                  Create your first room type to start managing rooms
-                </p>
-                <Button 
-                  onClick={() => {
-                    console.log("Create Room Type button clicked (empty state)");
-                    setIsCreateOpen(true);
-                  }}
-                  className="w-full sm:w-auto"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Room Type
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-              {roomTypes.map((roomType) => (
-                <Card key={roomType.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base md:text-lg truncate">{roomType.name}</CardTitle>
-                        <Badge variant="secondary" className="mt-1 text-xs">
-                          {getBranchName(roomType.branchId)}
-                        </Badge>
+            {!roomTypes || roomTypes.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-8 md:py-12 px-4">
+                  <SquareStack className="h-10 w-10 md:h-12 md:w-12 text-gray-400 mb-4" />
+                  <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2 text-center">No room types found</h3>
+                  <p className="text-sm md:text-base text-gray-600 text-center mb-4 max-w-sm">
+                    Create your first room type to start managing rooms
+                  </p>
+                  <Button
+                    onClick={() => {
+                      console.log("Create Room Type button clicked (empty state)");
+                      setIsCreateOpen(true);
+                    }}
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Room Type
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                {roomTypes.map((roomType) => (
+                  <Card key={roomType.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base md:text-lg truncate">{roomType.name}</CardTitle>
+                          <Badge variant="secondary" className="mt-1 text-xs">
+                            {getBranchName(roomType.branchId)}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(roomType)}
+                            className="p-2"
+                          >
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(roomType)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(roomType)}
-                          className="p-2"
-                        >
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(roomType)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {roomType.description && (
+                          <p className="text-sm text-gray-600 line-clamp-2">{roomType.description}</p>
+                        )}
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                          <span className="text-sm font-medium">Base Price:</span>
+                          <span className="text-lg font-bold text-primary">
+                            Rs. {roomType.basePrice}/night
+                          </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                          <span className="text-sm font-medium">Max Occupancy:</span>
+                          <span className="text-sm">{roomType.maxOccupancy} guests</span>
+                        </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {roomType.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2">{roomType.description}</p>
-                      )}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                        <span className="text-sm font-medium">Base Price:</span>
-                        <span className="text-lg font-bold text-primary">
-                          Rs. {roomType.basePrice}/night
-                        </span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                        <span className="text-sm font-medium">Max Occupancy:</span>
-                        <span className="text-sm">{roomType.maxOccupancy} guests</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -36,6 +36,7 @@ export default function Reservations() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
   const [newStatus, setNewStatus] = useState("");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const { data: reservations, isLoading: reservationsLoading } = useQuery({
     queryKey: ["/api/reservations"],
@@ -267,11 +268,17 @@ export default function Reservations() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar
+        isMobileMenuOpen={isMobileSidebarOpen}
+        setIsMobileMenuOpen={setIsMobileSidebarOpen}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           title="Reservations"
           subtitle="Manage bookings and availability"
+          onMobileMenuToggle={() =>
+            setIsMobileSidebarOpen(!isMobileSidebarOpen)
+          }
         />
         <main className="flex-1 overflow-y-auto p-6">
           {/* Add Button Section */}
@@ -385,8 +392,8 @@ export default function Reservations() {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => handleViewReservation(reservation)}
                                 title="View Details"
@@ -394,8 +401,8 @@ export default function Reservations() {
                                 <Eye className="h-4 w-4" />
                               </Button>
                               {canCheckIn(reservation) && (
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   size="sm"
                                   onClick={() => handleCheckIn(reservation)}
                                   className="text-green-600 hover:text-green-800"
@@ -405,16 +412,16 @@ export default function Reservations() {
                                   <LogIn className="h-4 w-4" />
                                 </Button>
                               )}
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => handleEditReservation(reservation)}
                                 title="Edit Reservation"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => handleDeleteReservation(reservation)}
                                 className="text-red-600 hover:text-red-800"
@@ -594,7 +601,7 @@ export default function Reservations() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Reservation</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel reservation "{selectedReservation?.confirmationNumber}"? 
+              Are you sure you want to cancel reservation "{selectedReservation?.confirmationNumber}"?
               This will mark the reservation as cancelled and free up the associated rooms.
             </AlertDialogDescription>
           </AlertDialogHeader>

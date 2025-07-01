@@ -21,6 +21,7 @@ export default function Branches() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<any>(null);
+      const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -184,12 +185,17 @@ export default function Branches() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          title="Branch Management"
+
+         <Sidebar 
+                isMobileMenuOpen={isMobileSidebarOpen}
+                setIsMobileMenuOpen={setIsMobileSidebarOpen}
+              />
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <Header
+                 title="Branch Management"
           subtitle="Oversee multiple hotel locations"
-        />
+                 onMobileMenuToggle={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+                />
         <main className="flex-1 overflow-y-auto p-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">

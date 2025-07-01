@@ -30,6 +30,7 @@ export default function Billing() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [billData, setBillData] = useState({
     additionalCharges: 0,
     discount: 0,
@@ -180,7 +181,7 @@ export default function Billing() {
   const generateBillHTML = () => {
     if (!selectedReservation || !hotelSettings) return "";
 
-    const subtotal = selectedReservation.reservationRooms.reduce((sum: number, room: any) => 
+    const subtotal = selectedReservation.reservationRooms.reduce((sum: number, room: any) =>
       sum + parseFloat(room.totalAmount), 0
     );
     const additionalCharges = billData.additionalCharges || 0;
@@ -188,10 +189,10 @@ export default function Billing() {
     const tax = billData.tax || 0;
     const finalTotal = subtotal + additionalCharges - discount + tax;
     const isPaid = selectedReservation.status === 'checked-out';
-    
+
     // Get currency symbol
     const getCurrencySymbol = (currency: string) => {
-      const symbols: {[key: string]: string} = {
+      const symbols: { [key: string]: string } = {
         'NPR': 'Rs.',
         'USD': '$',
         'EUR': '€',
@@ -458,7 +459,7 @@ export default function Billing() {
   const handleCheckout = () => {
     if (!selectedReservation) return;
 
-    const roomSubtotal = selectedReservation.reservationRooms.reduce((sum: number, room: any) => 
+    const roomSubtotal = selectedReservation.reservationRooms.reduce((sum: number, room: any) =>
       sum + parseFloat(room.totalAmount), 0
     );
     const additionalCharges = billData.additionalCharges || 0;
@@ -486,7 +487,7 @@ export default function Billing() {
 
   // Get currency symbol for display
   const getCurrencySymbol = (currency: string) => {
-    const symbols: {[key: string]: string} = {
+    const symbols: { [key: string]: string } = {
       'NPR': 'Rs.',
       'USD': '$',
       'EUR': '€',
@@ -517,11 +518,17 @@ export default function Billing() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar
+        isMobileMenuOpen={isMobileSidebarOpen}
+        setIsMobileMenuOpen={setIsMobileSidebarOpen}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           title="Billing"
           subtitle="Manage guest checkout and billing"
+          onMobileMenuToggle={() =>
+            setIsMobileSidebarOpen(!isMobileSidebarOpen)
+          }
         />
         <main className="flex-1 overflow-y-auto p-6">
           {/* Search Section */}
@@ -620,8 +627,8 @@ export default function Billing() {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => handleCreateBill(reservation)}
                                 title={reservation.status === 'checked-out' ? 'View paid bill' : 'Create bill'}
@@ -706,7 +713,7 @@ export default function Billing() {
                     type="number"
                     step="0.01"
                     value={billData.additionalCharges}
-                    onChange={(e) => setBillData({...billData, additionalCharges: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setBillData({ ...billData, additionalCharges: parseFloat(e.target.value) || 0 })}
                   />
                 </div>
                 <div>
@@ -716,7 +723,7 @@ export default function Billing() {
                     type="number"
                     step="0.01"
                     value={billData.discount}
-                    onChange={(e) => setBillData({...billData, discount: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setBillData({ ...billData, discount: parseFloat(e.target.value) || 0 })}
                   />
                 </div>
                 <div>
@@ -726,7 +733,7 @@ export default function Billing() {
                     type="number"
                     step="0.01"
                     value={billData.tax}
-                    onChange={(e) => setBillData({...billData, tax: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setBillData({ ...billData, tax: parseFloat(e.target.value) || 0 })}
                   />
                 </div>
                 <div>
@@ -735,7 +742,7 @@ export default function Billing() {
                     id="paymentMethod"
                     className="w-full p-2 border border-gray-300 rounded-md"
                     value={billData.paymentMethod}
-                    onChange={(e) => setBillData({...billData, paymentMethod: e.target.value})}
+                    onChange={(e) => setBillData({ ...billData, paymentMethod: e.target.value })}
                   >
                     <option value="cash">Cash</option>
                     <option value="card">Card</option>
@@ -750,7 +757,7 @@ export default function Billing() {
                 <Textarea
                   id="notes"
                   value={billData.notes}
-                  onChange={(e) => setBillData({...billData, notes: e.target.value})}
+                  onChange={(e) => setBillData({ ...billData, notes: e.target.value })}
                   placeholder="Any additional notes..."
                 />
               </div>
@@ -759,11 +766,11 @@ export default function Billing() {
               <div className="border-t pt-4">
                 <div className="text-right space-y-2">
                   {(() => {
-                    const roomSubtotal = selectedReservation.reservationRooms.reduce((sum: number, room: any) => 
+                    const roomSubtotal = selectedReservation.reservationRooms.reduce((sum: number, room: any) =>
                       sum + parseFloat(room.totalAmount), 0
                     );
                     const finalTotal = roomSubtotal + billData.additionalCharges - billData.discount + billData.tax;
-                    
+
                     return (
                       <>
                         <div>Subtotal: Rs.{roomSubtotal.toFixed(2)}</div>

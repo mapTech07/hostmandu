@@ -19,13 +19,5 @@
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"]
     }
-  },
-  "ts-node": {
-    "esm": true,
-    "compilerOptions": {
-      "module": "ESNext",
-      "moduleResolution": "node",
-      "allowImportingTsExtensions": false
-    }
   }
 }

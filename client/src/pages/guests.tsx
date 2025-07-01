@@ -36,6 +36,8 @@ export default function Guests() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedGuest, setSelectedGuest] = useState<any>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   const [formData, setFormData] = useState<GuestFormData>({
     firstName: "",
     lastName: "",
@@ -221,11 +223,17 @@ export default function Guests() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar
+        isMobileMenuOpen={isMobileSidebarOpen}
+        setIsMobileMenuOpen={setIsMobileSidebarOpen}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           title="Guest Management"
           subtitle="Manage guest profiles and history"
+          onMobileMenuToggle={() =>
+            setIsMobileSidebarOpen(!isMobileSidebarOpen)
+          }
         />
         <main className="flex-1 overflow-y-auto p-6">
           {/* Add Button Section */}
@@ -511,7 +519,7 @@ export default function Guests() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the guest "{selectedGuest?.firstName} {selectedGuest?.lastName}"? 
+              Are you sure you want to delete the guest "{selectedGuest?.firstName} {selectedGuest?.lastName}"?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

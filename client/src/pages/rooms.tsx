@@ -21,6 +21,8 @@ export default function Rooms() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<any>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     number: "",
     floor: "",
@@ -201,11 +203,17 @@ export default function Rooms() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar
+        isMobileMenuOpen={isMobileSidebarOpen}
+        setIsMobileMenuOpen={setIsMobileSidebarOpen}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           title="Room Management"
-          subtitle="Monitor room status and inventory"
+          subtitle="Monitor room status"
+          onMobileMenuToggle={() =>
+            setIsMobileSidebarOpen(!isMobileSidebarOpen)
+          }
         />
         <main className="flex-1 overflow-y-auto p-6">
           <Card>
