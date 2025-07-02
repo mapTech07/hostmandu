@@ -522,9 +522,6 @@ export default function Reservations() {
                     <span className="font-medium">Total Amount:</span> Rs.{parseFloat(selectedReservation.totalAmount).toFixed(2)}
                   </div>
                   <div>
-                    <span className="font-medium">Paid Amount:</span> Rs.{parseFloat(selectedReservation.paidAmount || 0).toFixed(2)}
-                  </div>
-                  <div>
                     <span className="font-medium">Created:</span> {formatDateTime(selectedReservation.createdAt)}
                   </div>
                 </div>
@@ -582,7 +579,7 @@ export default function Reservations() {
                     Process Payment
                   </Button>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card>
                     <CardContent className="p-4">
@@ -593,7 +590,7 @@ export default function Reservations() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardContent className="p-4">
                       <div className="text-center">
@@ -603,7 +600,7 @@ export default function Reservations() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardContent className="p-4">
                       <div className="text-center">

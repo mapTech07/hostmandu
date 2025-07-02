@@ -48,6 +48,12 @@ export default function Billing() {
     enabled: isAuthenticated,
   });
 
+  // Get payment history for selected reservation
+  const { data: selectedReservationPayments } = useQuery({
+    queryKey: [`/api/reservations/${selectedReservation?.id}/payments`],
+    enabled: !!selectedReservation?.id,
+  });
+
   const { data: hotelSettings } = useQuery({
     queryKey: ["/api/hotel-settings"],
     enabled: isAuthenticated,
@@ -266,9 +272,10 @@ export default function Billing() {
                           <TableCell>
                             {(() => {
                               const totalAmount = parseFloat(reservation.totalAmount);
-                              const paidAmount = parseFloat(reservation.paidAmount || 0);
+                              // Use payments from the payment history if available, otherwise fall back to reservation.paidAmount
+                              const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(reservation.paidAmount || 0);
                               const balance = totalAmount - paidAmount;
-                              
+
                               if (paidAmount === 0) {
                                 return <Badge variant="destructive" className="flex items-center gap-1">
                                   <AlertCircle className="h-3 w-3" />
@@ -291,10 +298,18 @@ export default function Billing() {
                             {currencySymbol}{parseFloat(reservation.totalAmount).toFixed(2)}
                           </TableCell>
                           <TableCell className="font-medium text-green-600">
-                            {currencySymbol}{parseFloat(reservation.paidAmount || 0).toFixed(2)}
+                            {currencySymbol}{(() => {
+                              // Use payments from the payment history if available, otherwise fall back to reservation.paidAmount
+                              return parseFloat(selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || reservation.paidAmount || 0).toFixed(2);
+                            })()}
                           </TableCell>
                           <TableCell className="font-medium text-orange-600">
-                            {currencySymbol}{(parseFloat(reservation.totalAmount) - parseFloat(reservation.paidAmount || 0)).toFixed(2)}
+                            {currencySymbol}{(() => {
+                              const totalAmount = parseFloat(reservation.totalAmount);
+                              // Use payments from the payment history if available, otherwise fall back to reservation.paidAmount
+                              const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(reservation.paidAmount || 0);
+                              return (totalAmount - paidAmount).toFixed(2);
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-1">
@@ -311,7 +326,12 @@ export default function Billing() {
                                 size="sm"
                                 onClick={() => handlePayment(reservation)}
                                 title="Process payment"
-                                disabled={parseFloat(reservation.totalAmount) - parseFloat(reservation.paidAmount || 0) <= 0}
+                                disabled={(() => {
+                                  const totalAmount = parseFloat(reservation.totalAmount);
+                                  // Use payments from the payment history if available, otherwise fall back to reservation.paidAmount
+                                  const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(reservation.paidAmount || 0);
+                                  return totalAmount - paidAmount <= 0;
+                                })()}
                               >
                                 <CreditCard className="h-4 w-4" />
                               </Button>
@@ -392,24 +412,30 @@ export default function Billing() {
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     <Card>
                       <CardContent className="p-4">
                         <div className="text-center">
                           <CreditCard className="h-8 w-8 mx-auto mb-2 text-blue-600" />
                           <p className="text-sm text-muted-foreground">Paid Amount</p>
-                          <p className="text-2xl font-bold text-green-600">{currencySymbol}{parseFloat(selectedReservation.paidAmount || 0).toFixed(2)}</p>
+                          <p className="text-2xl font-bold text-green-600">{currencySymbol}{(() => {
+                             return parseFloat(selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || selectedReservation.paidAmount || 0).toFixed(2)
+                          })()}</p>
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     <Card>
                       <CardContent className="p-4">
                         <div className="text-center">
                           <AlertCircle className="h-8 w-8 mx-auto mb-2 text-orange-600" />
                           <p className="text-sm text-muted-foreground">Remaining</p>
                           <p className="text-2xl font-bold text-orange-600">
-                            {currencySymbol}{(parseFloat(selectedReservation.totalAmount) - parseFloat(selectedReservation.paidAmount || 0)).toFixed(2)}
+                            {currencySymbol}{(() => {
+                              const totalAmount = parseFloat(selectedReservation.totalAmount);
+                              const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(selectedReservation.paidAmount || 0);
+                              return (totalAmount - paidAmount).toFixed(2);
+                            })()}
                           </p>
                         </div>
                       </CardContent>
@@ -418,7 +444,7 @@ export default function Billing() {
 
                   {/* Payment History */}
                   <PaymentHistory reservationId={selectedReservation.id} />
-                  
+
                   {/* Process Payment Button */}
                   <div className="flex justify-center pt-4">
                     <Button
@@ -426,7 +452,11 @@ export default function Billing() {
                         setIsBillModalOpen(false);
                         handlePayment(selectedReservation);
                       }}
-                      disabled={parseFloat(selectedReservation.totalAmount) - parseFloat(selectedReservation.paidAmount || 0) <= 0}
+                      disabled={(() => {
+                        const totalAmount = parseFloat(selectedReservation.totalAmount);
+                        const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(selectedReservation.paidAmount || 0);
+                        return totalAmount - paidAmount <= 0
+                      })()}
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
                       Process New Payment
@@ -455,6 +485,7 @@ export default function Billing() {
         reservation={selectedReservation}
         onPaymentSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["/api/reservations"] });
+          queryClient.invalidateQueries({ queryKey: [`/api/reservations/${selectedReservation?.id}/payments`] });
         }}
       />
     </div>

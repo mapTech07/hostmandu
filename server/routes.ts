@@ -944,7 +944,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const payment = await storage.createPayment(paymentData);
+      
+      // Update reservation's paid amount based on all completed payments
+      const allPayments = await storage.getPaymentsByReservation(reservationId);
+      const totalPaid = allPayments
+        .filter(p => p.status === 'completed')
+        .reduce((sum, p) => sum + parseFloat(p.amount.toString()), 0);
+      
+      await storage.updateReservation(reservationId, { 
+        paidAmount: totalPaid.toString() 
+      });
+      
       broadcastChange('payments', 'created', payment);
+      broadcastChange('reservations', 'updated', { id: reservationId, paidAmount: totalPaid });
       res.status(201).json(payment);
     } catch (error) {
       console.error("Error creating payment:", error);
@@ -984,6 +996,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { status } = req.body;
 
       const payment = await storage.updatePaymentStatus(paymentId, status);
+      
+      // Update reservation's paid amount when payment status changes
+      if (payment) {
+        const allPayments = await storage.getPaymentsByReservation(payment.reservationId);
+        const totalPaid = allPayments
+          .filter(p => p.status === 'completed')
+          .reduce((sum, p) => sum + parseFloat(p.amount.toString()), 0);
+        
+        await storage.updateReservation(payment.reservationId, { 
+          paidAmount: totalPaid.toString() 
+        });
+        
+        broadcastChange('reservations', 'updated', { 
+          id: payment.reservationId, 
+          paidAmount: totalPaid 
+        });
+      }
+      
       broadcastChange('payments', 'updated', payment);
       res.json(payment);
     } catch (error) {
