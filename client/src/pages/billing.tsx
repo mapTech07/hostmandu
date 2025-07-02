@@ -131,6 +131,256 @@ export default function Billing() {
     setIsBillModalOpen(true);
   };
 
+  const handlePrintBill = () => {
+    if (!selectedReservation) return;
+
+    const billWindow = window.open('', '_blank');
+    const billContent = generateBillHTML();
+    billWindow?.document.write(billContent);
+    billWindow?.document.close();
+    billWindow?.print();
+  };
+
+  const generateBillHTML = () => {
+    if (!selectedReservation) return "";
+
+    const totalAmount = parseFloat(selectedReservation.totalAmount);
+    const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(selectedReservation.paidAmount || 0);
+    const remainingAmount = totalAmount - paidAmount;
+    const isPaid = remainingAmount <= 0;
+    const currentDateTime = new Date().toLocaleDateString("en-US", {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Hotel Bill - ${selectedReservation.confirmationNumber}</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            margin: 0;
+            line-height: 1.4;
+            color: #333;
+          }
+          .header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+          }
+          .hotel-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+          }
+          .bill-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0 10px 0;
+            color: #333;
+          }
+          .bill-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+          }
+          .guest-details, .bill-details {
+            flex: 1;
+          }
+          .guest-details {
+            margin-right: 20px;
+          }
+          .detail-label {
+            font-weight: bold;
+            color: #333;
+          }
+          .room-details {
+            margin-bottom: 20px;
+          }
+          .room-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+          .room-table th, .room-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+          }
+          .room-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+          }
+          .room-table td:last-child {
+            text-align: right;
+          }
+          .total-section {
+            margin-top: 20px;
+            text-align: right;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+          }
+          .subtotal-row {
+            margin-bottom: 5px;
+          }
+          .total-row {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid #333;
+            font-size: 18px;
+          }
+          .payment-status {
+            margin: 20px 0;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            border-radius: 5px;
+          }
+          .payment-status.paid {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+          }
+          .payment-status.unpaid {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+          }
+          .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+          }
+          .payment-history {
+            margin-top: 20px;
+          }
+          .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+          }
+          .payment-table th, .payment-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+          }
+          .payment-table th {
+            background-color: #f2f2f2;
+          }
+          @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="hotel-name">HOTEL MANAGEMENT SYSTEM</div>
+          <div class="bill-title">HOTEL BILL / INVOICE</div>
+        </div>
+
+        <div class="bill-info">
+          <div class="guest-details">
+            <div><span class="detail-label">Guest Name:</span> ${selectedReservation.guest.firstName} ${selectedReservation.guest.lastName}</div>
+            <div><span class="detail-label">Email:</span> ${selectedReservation.guest.email || "N/A"}</div>
+            <div><span class="detail-label">Phone:</span> ${selectedReservation.guest.phone || "N/A"}</div>
+          </div>
+          <div class="bill-details">
+            <div><span class="detail-label">Confirmation Number:</span> ${selectedReservation.confirmationNumber}</div>
+            <div><span class="detail-label">Bill Date:</span> ${currentDateTime}</div>
+            <div><span class="detail-label">Check-in:</span> ${selectedReservation.reservationRooms[0] ? formatDate(selectedReservation.reservationRooms[0].checkInDate) : "N/A"}</div>
+            <div><span class="detail-label">Check-out:</span> ${selectedReservation.reservationRooms[0] ? formatDate(selectedReservation.reservationRooms[0].checkOutDate) : "N/A"}</div>
+          </div>
+        </div>
+
+        <div class="room-details">
+          <h3>Room Details</h3>
+          <table class="room-table">
+            <thead>
+              <tr>
+                <th>Room Number</th>
+                <th>Room Type</th>
+                <th>Rate/Night</th>
+                <th>Nights</th>
+                <th>Total Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${selectedReservation.reservationRooms.map((roomRes: any) => `
+                <tr>
+                  <td>${roomRes.room.number}</td>
+                  <td>${roomRes.room.roomType.name}</td>
+                  <td>Rs.${parseFloat(roomRes.ratePerNight).toFixed(2)}</td>
+                  <td>${calculateNights(roomRes.checkInDate, roomRes.checkOutDate)}</td>
+                  <td>Rs.${parseFloat(roomRes.totalAmount).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="total-section">
+          <div class="subtotal-row">Subtotal: Rs.${totalAmount.toFixed(2)}</div>
+          <div class="total-row">
+            <strong>TOTAL AMOUNT: Rs.${totalAmount.toFixed(2)}</strong>
+          </div>
+        </div>
+
+        <div class="payment-status ${isPaid ? 'paid' : 'unpaid'}">
+          PAYMENT STATUS: ${isPaid ? 'PAID IN FULL' : 'PAYMENT PENDING'}
+        </div>
+
+        ${selectedReservationPayments && selectedReservationPayments.length > 0 ? `
+          <div class="payment-history">
+            <h3>Payment History</h3>
+            <table class="payment-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Method</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${selectedReservationPayments.map((payment: any) => `
+                  <tr>
+                    <td>${new Date(payment.paymentDate).toLocaleDateString()}</td>
+                    <td>${payment.paymentMethod.toUpperCase()}</td>
+                    <td>Rs.${parseFloat(payment.amount).toFixed(2)}</td>
+                    <td>${payment.status.toUpperCase()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Thank you for choosing our hotel!</p>
+          <p>For any queries regarding this bill, please contact the front desk.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
   const filteredReservations = reservations?.filter((reservation: any) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -321,20 +571,34 @@ export default function Billing() {
                               >
                                 <Receipt className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handlePayment(reservation)}
-                                title="Process payment"
-                                disabled={(() => {
-                                  const totalAmount = parseFloat(reservation.totalAmount);
-                                  // Use payments from the payment history if available, otherwise fall back to reservation.paidAmount
-                                  const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(reservation.paidAmount || 0);
-                                  return totalAmount - paidAmount <= 0;
-                                })()}
-                              >
-                                <CreditCard className="h-4 w-4" />
-                              </Button>
+                              {(() => {
+                                const totalAmount = parseFloat(reservation.totalAmount);
+                                const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(reservation.paidAmount || 0);
+                                const isFullyPaid = totalAmount - paidAmount <= 0;
+                                
+                                return isFullyPaid ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedReservation(reservation);
+                                      handlePrintBill();
+                                    }}
+                                    title="Print bill"
+                                  >
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handlePayment(reservation)}
+                                    title="Process payment"
+                                  >
+                                    <CreditCard className="h-4 w-4" />
+                                  </Button>
+                                );
+                              })()}
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -556,20 +820,32 @@ export default function Billing() {
                     <Button variant="outline" onClick={() => setIsBillModalOpen(false)}>
                       Close
                     </Button>
-                    <Button
-                      onClick={() => {
-                        setIsBillModalOpen(false);
-                        handlePayment(selectedReservation);
-                      }}
-                      disabled={(() => {
-                        const totalAmount = parseFloat(selectedReservation.totalAmount);
-                        const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(selectedReservation.paidAmount || 0);
-                        return totalAmount - paidAmount <= 0;
-                      })()}
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Process Payment
+                    <Button variant="outline" onClick={handlePrintBill}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Bill
                     </Button>
+                    {(() => {
+                      const totalAmount = parseFloat(selectedReservation.totalAmount);
+                      const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(selectedReservation.paidAmount || 0);
+                      const isFullyPaid = totalAmount - paidAmount <= 0;
+                      
+                      return isFullyPaid ? (
+                        <div className="flex items-center text-green-600 font-medium">
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          Payment Complete
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            setIsBillModalOpen(false);
+                            handlePayment(selectedReservation);
+                          }}
+                        >
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Process Payment
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
