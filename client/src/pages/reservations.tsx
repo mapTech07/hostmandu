@@ -589,7 +589,7 @@ export default function Reservations() {
                       <div className="text-center">
                         <DollarSign className="h-8 w-8 mx-auto mb-2 text-green-600" />
                         <p className="text-sm text-muted-foreground">Total Amount</p>
-                        <p className="text-2xl font-bold">${parseFloat(selectedReservation.totalAmount).toFixed(2)}</p>
+                        <p className="text-2xl font-bold">Rs.{parseFloat(selectedReservation.totalAmount).toFixed(2)}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -599,7 +599,7 @@ export default function Reservations() {
                       <div className="text-center">
                         <CreditCard className="h-8 w-8 mx-auto mb-2 text-blue-600" />
                         <p className="text-sm text-muted-foreground">Paid Amount</p>
-                        <p className="text-2xl font-bold text-green-600">${parseFloat(selectedReservation.paidAmount || 0).toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-green-600">Rs.{parseFloat(selectedReservation.paidAmount || 0).toFixed(2)}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -610,7 +610,7 @@ export default function Reservations() {
                         <Banknote className="h-8 w-8 mx-auto mb-2 text-orange-600" />
                         <p className="text-sm text-muted-foreground">Remaining</p>
                         <p className="text-2xl font-bold text-orange-600">
-                          ${(parseFloat(selectedReservation.totalAmount) - parseFloat(selectedReservation.paidAmount || 0)).toFixed(2)}
+                          Rs.{(parseFloat(selectedReservation.totalAmount) - parseFloat(selectedReservation.paidAmount || 0)).toFixed(2)}
                         </p>
                       </div>
                     </CardContent>

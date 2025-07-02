@@ -136,22 +136,11 @@ export default function Billing() {
   });
 
   const getCurrencySymbol = (currency: string) => {
-    const symbols: { [key: string]: string } = {
-      'NPR': 'Rs.',
-      'USD': '$',
-      'EUR': '€',
-      'GBP': '£',
-      'JPY': '¥',
-      'CAD': 'C$',
-      'AUD': 'A$',
-      'CHF': 'CHF',
-      'CNY': '¥',
-      'INR': '₹'
-    };
-    return symbols[currency] || currency;
+    // Always return Rs. regardless of settings
+    return 'Rs.';
   };
 
-  const currencySymbol = hotelSettings ? getCurrencySymbol(hotelSettings.currency || 'NPR') : 'Rs.';
+  const currencySymbol = 'Rs.';
 
   if (isLoading) {
     return (
