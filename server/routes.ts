@@ -12,6 +12,7 @@ import {
   insertUserSchema,
   insertHotelSettingsSchema,
   insertPushSubscriptionSchema,
+  insertPaymentSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { broadcastChange } from "./middleware/websocket";
@@ -892,6 +893,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error cancelling reservation:", error);
       res.status(500).json({ message: "Failed to cancel reservation" });
+    }
+  });
+
+  // Payment routes
+  app.get("/api/reservations/:id/payments", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.user.id);
+      if (!user) return res.status(401).json({ message: "User not found" });
+
+      const reservationId = req.params.id;
+      const reservation = await storage.getReservation(reservationId);
+
+      if (!reservation) {
+        return res.status(404).json({ message: "Reservation not found" });
+      }
+
+      if (!checkBranchPermissions(user.role, user.branchId, reservation.branchId)) {
+        return res.status(403).json({ message: "Insufficient permissions for this branch" });
+      }
+
+      const payments = await storage.getPaymentsByReservation(reservationId);
+      res.json(payments);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+
+  app.post("/api/reservations/:id/payments", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.user.id);
+      if (!user) return res.status(401).json({ message: "User not found" });
+
+      const reservationId = req.params.id;
+      const reservation = await storage.getReservation(reservationId);
+
+      if (!reservation) {
+        return res.status(404).json({ message: "Reservation not found" });
+      }
+
+      if (!checkBranchPermissions(user.role, user.branchId, reservation.branchId)) {
+        return res.status(403).json({ message: "Insufficient permissions for this branch" });
+      }
+
+      const paymentData = insertPaymentSchema.parse({
+        ...req.body,
+        reservationId,
+        processedById: user.id,
+      });
+
+      const payment = await storage.createPayment(paymentData);
+      broadcastChange('payments', 'created', payment);
+      res.status(201).json(payment);
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      res.status(500).json({ message: "Failed to create payment" });
+    }
+  });
+
+  app.get("/api/reservations/:id/with-payments", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.user.id);
+      if (!user) return res.status(401).json({ message: "User not found" });
+
+      const reservationId = req.params.id;
+      const reservation = await storage.getReservationWithPayments(reservationId);
+
+      if (!reservation) {
+        return res.status(404).json({ message: "Reservation not found" });
+      }
+
+      if (!checkBranchPermissions(user.role, user.branchId, reservation.branchId)) {
+        return res.status(403).json({ message: "Insufficient permissions for this branch" });
+      }
+
+      res.json(reservation);
+    } catch (error) {
+      console.error("Error fetching reservation with payments:", error);
+      res.status(500).json({ message: "Failed to fetch reservation with payments" });
+    }
+  });
+
+  app.patch("/api/payments/:id/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.user.id);
+      if (!user) return res.status(401).json({ message: "User not found" });
+
+      const paymentId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      const payment = await storage.updatePaymentStatus(paymentId, status);
+      broadcastChange('payments', 'updated', payment);
+      res.json(payment);
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      res.status(500).json({ message: "Failed to update payment status" });
     }
   });
 

@@ -29,6 +29,9 @@ import {
   type InsertPushSubscription,
   type NotificationHistory,
   type InsertNotificationHistory,
+  payments,
+  type Payment,
+  type InsertPayment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, between, sql, ilike, notInArray } from "drizzle-orm";
@@ -119,6 +122,17 @@ export interface IStorage {
   markNotificationAsRead(notificationId: number, userId: string): Promise<void>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
   getUnreadNotificationCount(userId: string): Promise<number>;
+
+  // Payment operations
+  getPayments(reservationId: string): Promise<Payment[]>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getPaymentsByReservation(reservationId: string): Promise<Payment[]>;
+  updatePaymentStatus(paymentId: number, status: string): Promise<Payment>;
+  getReservationWithPayments(id: string): Promise<(Reservation & { 
+    guest: Guest; 
+    reservationRooms: (ReservationRoom & { room: Room & { roomType: RoomType } })[];
+    payments: Payment[];
+  }) | undefined>;
 
   // Advanced analytics operations
   getRevenueAnalytics(branchId?: number, period?: string): Promise<{
@@ -1335,6 +1349,66 @@ export class DatabaseStorage implements IStorage {
       noShowRate: Math.round(noShowRate * 100) / 100,
       reservationsBySource
     };
+  }
+
+  // Payment operations
+  async getPayments(reservationId: string): Promise<Payment[]> {
+    return this.db.select().from(payments).where(eq(payments.reservationId, reservationId)).orderBy(desc(payments.paymentDate));
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [newPayment] = await this.db.insert(payments).values(payment).returning();
+    
+    // Update reservation paid amount
+    const existingPayments = await this.getPayments(payment.reservationId);
+    const totalPaid = existingPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0) + parseFloat(payment.amount);
+    
+    await this.db
+      .update(reservations)
+      .set({ paidAmount: totalPaid.toString() })
+      .where(eq(reservations.id, payment.reservationId));
+    
+    return newPayment;
+  }
+
+  async getPaymentsByReservation(reservationId: string): Promise<Payment[]> {
+    return this.getPayments(reservationId);
+  }
+
+  async updatePaymentStatus(paymentId: number, status: string): Promise<Payment> {
+    const [updatedPayment] = await this.db
+      .update(payments)
+      .set({ status: status as any })
+      .where(eq(payments.id, paymentId))
+      .returning();
+    return updatedPayment;
+  }
+
+  async getReservationWithPayments(id: string): Promise<(Reservation & { 
+    guest: Guest; 
+    reservationRooms: (ReservationRoom & { room: Room & { roomType: RoomType } })[];
+    payments: Payment[];
+  }) | undefined> {
+    const reservation = await this.db.query.reservations.findFirst({
+      where: eq(reservations.id, id),
+      with: {
+        guest: true,
+        reservationRooms: {
+          with: {
+            room: {
+              with: {
+                roomType: true
+              }
+            }
+          }
+        },
+        payments: {
+          orderBy: desc(payments.paymentDate)
+        }
+      }
+    });
+    
+    return reservation as any;
   }
 }
 

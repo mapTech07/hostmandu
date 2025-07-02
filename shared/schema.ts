@@ -196,6 +196,7 @@ export const reservationsRelations = relations(reservations, ({ one, many }) => 
     references: [users.id],
   }),
   reservationRooms: many(reservationRooms),
+  payments: many(payments),
 }));
 
 export const reservationRoomsRelations = relations(reservationRooms, ({ one }) => ({
@@ -360,6 +361,47 @@ export const insertNotificationHistorySchema = createInsertSchema(notificationHi
   id: true,
   sentAt: true,
 });
+
+// Payments table
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  reservationId: uuid("reservation_id").notNull(),
+  paymentType: varchar("payment_type", { 
+    enum: ["advance", "partial", "full", "credit"] 
+  }).notNull(),
+  paymentMethod: varchar("payment_method", { 
+    enum: ["cash", "card", "online", "bank-transfer"] 
+  }).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  transactionReference: varchar("transaction_reference", { length: 255 }),
+  notes: text("notes"),
+  processedById: varchar("processed_by_id").notNull(),
+  status: varchar("status", { 
+    enum: ["pending", "completed", "failed", "refunded"] 
+  }).notNull().default("completed"),
+  paymentDate: timestamp("payment_date").defaultNow(),
+  dueDate: timestamp("due_date"), // For credit payments
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  reservation: one(reservations, {
+    fields: [payments.reservationId],
+    references: [reservations.id],
+  }),
+  processedBy: one(users, {
+    fields: [payments.processedById],
+    references: [users.id],
+  }),
+}));
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;

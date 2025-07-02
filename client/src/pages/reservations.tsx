@@ -22,8 +22,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Eye, Edit, Trash2, LogIn } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, LogIn, CreditCard, DollarSign, Banknote } from "lucide-react";
 import MultiRoomModal from "@/components/reservations/multi-room-modal";
+import { PaymentDialog } from "@/components/payments/payment-dialog";
+import { PaymentHistory } from "@/components/payments/payment-history";
 
 export default function Reservations() {
   const { toast } = useToast();
@@ -37,6 +39,7 @@ export default function Reservations() {
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
   const [newStatus, setNewStatus] = useState("");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
   const { data: reservations, isLoading: reservationsLoading } = useQuery({
     queryKey: ["/api/reservations"],
@@ -254,6 +257,11 @@ export default function Reservations() {
     return reservation.status === "confirmed" || reservation.status === "pending";
   };
 
+  const handlePayment = (reservation: any) => {
+    setSelectedReservation(reservation);
+    setIsPaymentDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -415,6 +423,15 @@ export default function Reservations() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => handlePayment(reservation)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Process Payment"
+                              >
+                                <CreditCard className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleEditReservation(reservation)}
                                 title="Edit Reservation"
                               >
@@ -549,6 +566,61 @@ export default function Reservations() {
                 </div>
               </div>
 
+              {/* Payment Information */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Payment Information</h3>
+                  <Button
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      handlePayment(selectedReservation);
+                    }}
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Process Payment
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-center">
+                        <DollarSign className="h-8 w-8 mx-auto mb-2 text-green-600" />
+                        <p className="text-sm text-muted-foreground">Total Amount</p>
+                        <p className="text-2xl font-bold">${parseFloat(selectedReservation.totalAmount).toFixed(2)}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-center">
+                        <CreditCard className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                        <p className="text-sm text-muted-foreground">Paid Amount</p>
+                        <p className="text-2xl font-bold text-green-600">${parseFloat(selectedReservation.paidAmount || 0).toFixed(2)}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-center">
+                        <Banknote className="h-8 w-8 mx-auto mb-2 text-orange-600" />
+                        <p className="text-sm text-muted-foreground">Remaining</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          ${(parseFloat(selectedReservation.totalAmount) - parseFloat(selectedReservation.paidAmount || 0)).toFixed(2)}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Payment History */}
+                <PaymentHistory reservationId={selectedReservation.id} />
+              </div>
+
               {selectedReservation.notes && (
                 <div>
                   <h3 className="font-semibold mb-2">Notes</h3>
@@ -613,6 +685,16 @@ export default function Reservations() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        isOpen={isPaymentDialogOpen}
+        onClose={() => setIsPaymentDialogOpen(false)}
+        reservation={selectedReservation}
+        onPaymentSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/reservations"] });
+        }}
+      />
     </div>
   );
 }
