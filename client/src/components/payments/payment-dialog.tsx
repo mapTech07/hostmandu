@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -61,6 +61,12 @@ export function PaymentDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Get payment history for accurate calculation
+  const { data: payments } = useQuery({
+    queryKey: [`/api/reservations/${reservation?.id}/payments`],
+    enabled: !!reservation?.id,
+  });
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
@@ -130,8 +136,13 @@ export function PaymentDialog({
   if (!reservation) return null;
 
   const totalAmount = parseFloat(reservation.totalAmount) || 0;
-  const paidAmount = parseFloat(reservation.paidAmount) || 0;
-  const remainingAmount = totalAmount - paidAmount;
+  
+  // Calculate actual paid amount from completed payments
+  const actualPaidAmount = payments ? payments
+    .filter((payment: any) => payment.status === "completed")
+    .reduce((sum: number, payment: any) => sum + parseFloat(payment.amount), 0) : 0;
+  
+  const remainingAmount = Math.max(0, totalAmount - actualPaidAmount);
   const selectedPaymentType = form.watch("paymentType");
   const selectedAmount = parseFloat(form.watch("amount") || "0");
 
@@ -180,8 +191,8 @@ export function PaymentDialog({
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Paid Amount:</span>
-                <span className="font-medium text-green-600">Rs.{paidAmount.toFixed(2)}</span>
-              </div>
+                <span className="font-medium text-green-600">Rs.{actualPaidAmount.toFixed(2)}</span>
+              </div></div>
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Remaining Balance:</span>
