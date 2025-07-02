@@ -521,17 +521,16 @@ export default function Billing() {
                           </TableCell>
                           <TableCell>
                             {(() => {
-                              const totalAmount = parseFloat(reservation.totalAmount);
-                              // Use payments from the payment history if available, otherwise fall back to reservation.paidAmount
-                              const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(reservation.paidAmount || 0);
-                              const balance = totalAmount - paidAmount;
+                              const totalAmount = parseFloat(reservation.totalAmount) || 0;
+                              const paidAmount = parseFloat(reservation.paidAmount || 0);
+                              const balance = Math.max(0, totalAmount - paidAmount);
 
                               if (paidAmount === 0) {
                                 return <Badge variant="destructive" className="flex items-center gap-1">
                                   <AlertCircle className="h-3 w-3" />
                                   Unpaid
                                 </Badge>;
-                              } else if (balance > 0) {
+                              } else if (balance > 0.01) { // Allow for small rounding differences
                                 return <Badge variant="secondary" className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
                                   Partial
@@ -555,10 +554,10 @@ export default function Billing() {
                           </TableCell>
                           <TableCell className="font-medium text-orange-600">
                             {currencySymbol}{(() => {
-                              const totalAmount = parseFloat(reservation.totalAmount);
-                              // Use payments from the payment history if available, otherwise fall back to reservation.paidAmount
-                              const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(reservation.paidAmount || 0);
-                              return (totalAmount - paidAmount).toFixed(2);
+                              const totalAmount = parseFloat(reservation.totalAmount) || 0;
+                              const paidAmount = parseFloat(reservation.paidAmount || 0);
+                              const balance = Math.max(0, totalAmount - paidAmount);
+                              return balance.toFixed(2);
                             })()}
                           </TableCell>
                           <TableCell>
