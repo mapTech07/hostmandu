@@ -574,7 +574,7 @@ export default function Billing() {
                                 const totalAmount = parseFloat(reservation.totalAmount);
                                 const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(reservation.paidAmount || 0);
                                 const isFullyPaid = totalAmount - paidAmount <= 0;
-                                
+
                                 return isFullyPaid ? (
                                   <Button
                                     variant="ghost"
@@ -796,18 +796,20 @@ export default function Billing() {
                           <span>Total Amount:</span>
                           <span>{currencySymbol}{parseFloat(selectedReservation.totalAmount).toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-green-600">
+                        <div className="text-green-600">
                           <span>Paid Amount:</span>
                           <span className="font-medium">{currencySymbol}{(() => {
-                            return parseFloat(selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || selectedReservation.paidAmount || 0).toFixed(2);
+                            const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + parseFloat(payment.amount), 0) || parseFloat(selectedReservation.paidAmount || 0);
+                            return (Math.round(paidAmount * 100) / 100).toFixed(2);
                           })()}</span>
                         </div>
-                        <div className="flex justify-between text-orange-600 border-t pt-2">
+                        <div className="text-orange-600 border-t pt-2">
                           <span className="font-medium">Balance Due:</span>
                           <span className="font-bold">{currencySymbol}{(() => {
-                            const totalAmount = parseFloat(selectedReservation.totalAmount);
-                            const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(selectedReservation.paidAmount || 0);
-                            return (totalAmount - paidAmount).toFixed(2);
+                            const totalAmount = Math.round(parseFloat(selectedReservation.totalAmount) * 100) / 100;
+                            const paidAmount = Math.round((selectedReservationPayments?.reduce((sum, payment) => sum + parseFloat(payment.amount), 0) || parseFloat(selectedReservation.paidAmount || 0)) * 100) / 100;
+                            const balance = Math.max(0, totalAmount - paidAmount);
+                            return (Math.round(balance * 100) / 100).toFixed(2);
                           })()}</span>
                         </div>
                       </div>
@@ -827,7 +829,7 @@ export default function Billing() {
                       const totalAmount = parseFloat(selectedReservation.totalAmount);
                       const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(selectedReservation.paidAmount || 0);
                       const isFullyPaid = totalAmount - paidAmount <= 0;
-                      
+
                       return isFullyPaid ? (
                         <div className="flex items-center text-green-600 font-medium">
                           <DollarSign className="h-4 w-4 mr-2" />
@@ -854,8 +856,7 @@ export default function Billing() {
       </Dialog>
 
       {/* Payment Dialog */}
-      <PaymentDialog
-        isOpen={isPaymentDialogOpen}
+      <PaymentDialog        isOpen={isPaymentDialogOpen}
         onClose={() => setIsPaymentDialogOpen(false)}
         reservation={selectedReservation}
         onPaymentSuccess={() => {
