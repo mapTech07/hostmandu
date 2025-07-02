@@ -192,7 +192,7 @@ export function PaymentDialog({
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Paid Amount:</span>
                 <span className="font-medium text-green-600">Rs.{actualPaidAmount.toFixed(2)}</span>
-              </div></div>
+              </div>
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Remaining Balance:</span>
