@@ -465,11 +465,111 @@ export default function Billing() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="text-center">
-                    <p className="text-lg font-semibold text-gray-700">Bill generation and detailed billing features will be available soon.</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      For now, use the payment processing buttons to handle transactions.
-                    </p>
+                  {/* Bill Header */}
+                  <div className="text-center border-b pb-4">
+                    <h2 className="text-2xl font-bold">HOTEL BILL</h2>
+                    <p className="text-sm text-gray-600">Confirmation: {selectedReservation.confirmationNumber}</p>
+                    <p className="text-sm text-gray-600">Date: {new Date().toLocaleDateString()}</p>
+                  </div>
+
+                  {/* Guest Information */}
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="font-semibold mb-2">Guest Information</h3>
+                      <div className="space-y-1 text-sm">
+                        <p><span className="font-medium">Name:</span> {selectedReservation.guest.firstName} {selectedReservation.guest.lastName}</p>
+                        <p><span className="font-medium">Email:</span> {selectedReservation.guest.email || "N/A"}</p>
+                        <p><span className="font-medium">Phone:</span> {selectedReservation.guest.phone || "N/A"}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-2">Stay Information</h3>
+                      <div className="space-y-1 text-sm">
+                        <p><span className="font-medium">Check-in:</span> {selectedReservation.reservationRooms[0] ? formatDate(selectedReservation.reservationRooms[0].checkInDate) : "N/A"}</p>
+                        <p><span className="font-medium">Check-out:</span> {selectedReservation.reservationRooms[0] ? formatDate(selectedReservation.reservationRooms[0].checkOutDate) : "N/A"}</p>
+                        <p><span className="font-medium">Nights:</span> {selectedReservation.reservationRooms[0] ? calculateNights(selectedReservation.reservationRooms[0].checkInDate, selectedReservation.reservationRooms[0].checkOutDate) : 0}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Room Details */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Room Details</h3>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="text-left p-3 font-medium">Room</th>
+                            <th className="text-left p-3 font-medium">Type</th>
+                            <th className="text-left p-3 font-medium">Rate/Night</th>
+                            <th className="text-left p-3 font-medium">Nights</th>
+                            <th className="text-right p-3 font-medium">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedReservation.reservationRooms.map((roomRes: any, index: number) => (
+                            <tr key={index} className="border-t">
+                              <td className="p-3">{roomRes.room.number}</td>
+                              <td className="p-3">{roomRes.room.roomType.name}</td>
+                              <td className="p-3">{currencySymbol}{parseFloat(roomRes.ratePerNight).toFixed(2)}</td>
+                              <td className="p-3">{calculateNights(roomRes.checkInDate, roomRes.checkOutDate)}</td>
+                              <td className="p-3 text-right font-medium">{currencySymbol}{parseFloat(roomRes.totalAmount).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Bill Summary */}
+                  <div className="border-t pt-4">
+                    <div className="flex justify-end">
+                      <div className="w-64 space-y-2">
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span className="font-medium">{currencySymbol}{parseFloat(selectedReservation.totalAmount).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between border-t pt-2 font-bold text-lg">
+                          <span>Total Amount:</span>
+                          <span>{currencySymbol}{parseFloat(selectedReservation.totalAmount).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-green-600">
+                          <span>Paid Amount:</span>
+                          <span className="font-medium">{currencySymbol}{(() => {
+                            return parseFloat(selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || selectedReservation.paidAmount || 0).toFixed(2);
+                          })()}</span>
+                        </div>
+                        <div className="flex justify-between text-orange-600 border-t pt-2">
+                          <span className="font-medium">Balance Due:</span>
+                          <span className="font-bold">{currencySymbol}{(() => {
+                            const totalAmount = parseFloat(selectedReservation.totalAmount);
+                            const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(selectedReservation.paidAmount || 0);
+                            return (totalAmount - paidAmount).toFixed(2);
+                          })()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button variant="outline" onClick={() => setIsBillModalOpen(false)}>
+                      Close
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsBillModalOpen(false);
+                        handlePayment(selectedReservation);
+                      }}
+                      disabled={(() => {
+                        const totalAmount = parseFloat(selectedReservation.totalAmount);
+                        const paidAmount = selectedReservationPayments?.reduce((sum, payment) => sum + payment.amount, 0) || parseFloat(selectedReservation.paidAmount || 0);
+                        return totalAmount - paidAmount <= 0;
+                      })()}
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Process Payment
+                    </Button>
                   </div>
                 </div>
               )}
