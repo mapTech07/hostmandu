@@ -139,7 +139,7 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
               <span className="text-sm font-medium">Total Paid</span>
             </div>
             <span className="text-lg font-bold text-green-600">
-              ${totalPaid.toFixed(2)}
+              Rs.{totalPaid.toFixed(2)}
             </span>
           </div>
         </div>
@@ -177,7 +177,7 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
               {/* Amount */}
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold">
-                  ${parseFloat(payment.amount).toFixed(2)}
+                  Rs.{parseFloat(payment.amount).toFixed(2)}
                 </span>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
@@ -251,7 +251,7 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono">
-                    ${parseFloat(payment.amount).toFixed(2)}
+                    Rs.{parseFloat(payment.amount).toFixed(2)}
                   </TableCell>
                   <TableCell>
                     <Badge 

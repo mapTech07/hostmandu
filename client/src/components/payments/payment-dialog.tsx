@@ -116,7 +116,12 @@ export function PaymentDialog({
     if (isProcessing) return;
     setIsProcessing(true);
     try {
-      await createPaymentMutation.mutateAsync(data);
+      // Convert dueDate string to Date object if present
+      const processedData = {
+        ...data,
+        dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : undefined,
+      };
+      await createPaymentMutation.mutateAsync(processedData);
     } finally {
       setIsProcessing(false);
     }
