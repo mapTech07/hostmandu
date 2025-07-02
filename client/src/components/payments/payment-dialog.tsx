@@ -171,17 +171,17 @@ export function PaymentDialog({
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Total Amount:</span>
-                <span className="font-medium">${totalAmount.toFixed(2)}</span>
+                <span className="font-medium">Rs.{totalAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Paid Amount:</span>
-                <span className="font-medium text-green-600">${paidAmount.toFixed(2)}</span>
+                <span className="font-medium text-green-600">Rs.{paidAmount.toFixed(2)}</span>
               </div>
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Remaining Balance:</span>
                 <span className="font-bold text-lg">
-                  ${remainingAmount.toFixed(2)}
+                  Rs.{remainingAmount.toFixed(2)}
                 </span>
               </div>
             </CardContent>
@@ -257,7 +257,7 @@ export function PaymentDialog({
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount ($)</FormLabel>
+                    <FormLabel>Amount (Rs.)</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
@@ -270,13 +270,13 @@ export function PaymentDialog({
                           className="pl-8"
                         />
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                          $
+                          Rs.
                         </span>
                       </div>
                     </FormControl>
                     {selectedAmount > remainingAmount && (
                       <p className="text-sm text-red-600">
-                        Amount cannot exceed remaining balance of ${remainingAmount.toFixed(2)}
+                        Amount cannot exceed remaining balance of Rs.{remainingAmount.toFixed(2)}
                       </p>
                     )}
                     <FormMessage />
@@ -357,7 +357,7 @@ export function PaymentDialog({
                   disabled={isProcessing || selectedAmount <= 0 || selectedAmount > remainingAmount}
                   className="flex-1"
                 >
-                  {isProcessing ? "Processing..." : `Process Payment ($${selectedAmount.toFixed(2)})`}
+                  {isProcessing ? "Processing..." : `Process Payment (Rs.${selectedAmount.toFixed(2)})`}
                 </Button>
               </div>
             </form>
