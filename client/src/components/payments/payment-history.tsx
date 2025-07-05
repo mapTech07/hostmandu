@@ -19,7 +19,10 @@ interface PaymentHistoryProps {
   className?: string;
 }
 
-export function PaymentHistory({ reservationId, className }: PaymentHistoryProps) {
+export function PaymentHistory({
+  reservationId,
+  className,
+}: PaymentHistoryProps) {
   const { data: payments, isLoading } = useQuery({
     queryKey: [`/api/reservations/${reservationId}/payments`],
     enabled: !!reservationId,
@@ -106,7 +109,9 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
           <div className="text-center py-8 text-muted-foreground">
             <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No payments recorded yet</p>
-            <p className="text-sm">Payment history will appear here once payments are made</p>
+            <p className="text-sm">
+              Payment history will appear here once payments are made
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -114,7 +119,9 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
   }
 
   const totalPaid = payments.reduce((sum: number, payment: any) => {
-    return payment.status === "completed" ? sum + parseFloat(payment.amount) : sum;
+    return payment.status === "completed"
+      ? sum + parseFloat(payment.amount)
+      : sum;
   }, 0);
 
   return (
@@ -126,7 +133,7 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
             Payment History
           </div>
           <Badge variant="outline" className="text-sm">
-            {payments.length} payment{payments.length !== 1 ? 's' : ''}
+            {payments.length} payment{payments.length !== 1 ? "s" : ""}
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -135,7 +142,6 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
         <div className="bg-muted/50 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
               <span className="text-sm font-medium">Total Paid</span>
             </div>
             <span className="text-lg font-bold text-green-600">
@@ -149,25 +155,28 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
         {/* Payment List */}
         <div className="space-y-3">
           {payments.map((payment: any, index: number) => (
-            <div key={payment.id || index} className="border rounded-lg p-4 space-y-3">
+            <div
+              key={payment.id || index}
+              className="border rounded-lg p-4 space-y-3"
+            >
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className={getPaymentTypeColor(payment.paymentType)}
                   >
                     {payment.paymentType}
                   </Badge>
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className={getPaymentMethodColor(payment.paymentMethod)}
                   >
                     {payment.paymentMethod.replace("-", " ")}
                   </Badge>
                 </div>
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className={getStatusColor(payment.status)}
                 >
                   {payment.status}
@@ -181,7 +190,10 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
                 </span>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  {format(new Date(payment.paymentDate), "MMM dd, yyyy 'at' h:mm a")}
+                  {format(
+                    new Date(payment.paymentDate),
+                    "MMM dd, yyyy 'at' h:mm a",
+                  )}
                 </div>
               </div>
 
@@ -190,7 +202,9 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
                 {payment.transactionReference && (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Reference:</span>
-                    <span className="font-mono">{payment.transactionReference}</span>
+                    <span className="font-mono">
+                      {payment.transactionReference}
+                    </span>
                   </div>
                 )}
 
@@ -235,16 +249,16 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
                     {format(new Date(payment.paymentDate), "MMM dd, yyyy")}
                   </TableCell>
                   <TableCell>
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={getPaymentTypeColor(payment.paymentType)}
                     >
                       {payment.paymentType}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={getPaymentMethodColor(payment.paymentMethod)}
                     >
                       {payment.paymentMethod.replace("-", " ")}
@@ -254,8 +268,8 @@ export function PaymentHistory({ reservationId, className }: PaymentHistoryProps
                     Rs.{parseFloat(payment.amount).toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={getStatusColor(payment.status)}
                     >
                       {payment.status}

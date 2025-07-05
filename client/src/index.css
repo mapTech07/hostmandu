@@ -18,6 +18,22 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Responsive form inputs */
+  input[type="datetime-local"] {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  /* Responsive dialog content */
+  [data-radix-dialog-content] {
+    margin: 0.5rem;
+    max-height: calc(100vh - 1rem);
+  }
+
+  /* Responsive select content */
+  [data-radix-select-content] {
+    max-height: 60vh;
+  }
 }
 
 /* Ensure content doesn't get hidden behind mobile menu button */

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Edit, Trash2 } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 interface GuestFormData {
   firstName: string;
@@ -265,6 +266,7 @@ export default function Guests() {
                       <TableHead>Phone</TableHead>
                       <TableHead>ID Type</TableHead>
                       <TableHead>Nationality</TableHead>
+                      <TableHead>Credit Balance</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -287,6 +289,11 @@ export default function Guests() {
                           </TableCell>
                           <TableCell>
                             {guest.nationality || "N/A"}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <span className={parseFloat(guest.creditBalance || '0') > 0 ? 'text-green-600' : 'text-gray-500'}>
+                              {formatCurrency(guest.creditBalance || '0')}
+                            </span>
                           </TableCell>
                           <TableCell>
                             {formatDate(guest.createdAt)}

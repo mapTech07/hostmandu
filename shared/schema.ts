@@ -98,6 +98,7 @@ export const guests = pgTable("guests", {
   dateOfBirth: date("date_of_birth"),
   nationality: varchar("nationality", { length: 100 }),
   reservationCount: integer("reservation_count").notNull().default(0),
+  creditBalance: decimal("credit_balance", { precision: 10, scale: 2 }).default("0"),
   branchId: integer("branch_id").notNull(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
@@ -126,8 +127,8 @@ export const reservationRooms = pgTable("reservation_rooms", {
   id: serial("id").primaryKey(),
   reservationId: uuid("reservation_id").notNull(),
   roomId: integer("room_id").notNull(),
-  checkInDate: date("check_in_date").notNull(),
-  checkOutDate: date("check_out_date").notNull(),
+  checkInDate: timestamp("check_in_date").notNull(),
+  checkOutDate: timestamp("check_out_date").notNull(),
   adults: integer("adults").notNull().default(1),
   children: integer("children").notNull().default(0),
   ratePerNight: decimal("rate_per_night", { precision: 10, scale: 2 }).notNull(),
@@ -398,6 +399,11 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
+}).extend({
+  dueDate: z.union([z.string(), z.date(), z.null(), z.undefined()]).transform((val) => {
+    if (!val) return null;
+    return val instanceof Date ? val : new Date(val);
+  }).optional(),
 });
 
 export type Payment = typeof payments.$inferSelect;

@@ -213,13 +213,16 @@ export function PaymentDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Payment Type</FormLabel>
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Choose how much to pay now:
+                    </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {(["advance", "partial", "full", "credit"] as const).map((type) => (
                         <Button
                           key={type}
                           type="button"
                           variant={field.value === type ? "default" : "outline"}
-                          className="h-12 flex-col gap-1"
+                          className="h-16 flex-col gap-1"
                           onClick={() => {
                             field.onChange(type);
                             form.setValue("amount", getSuggestedAmount(type).toString());
@@ -231,6 +234,12 @@ export function PaymentDialog({
                           >
                             {type}
                           </Badge>
+                          <div className="text-xs text-muted-foreground text-center">
+                            {type === "advance" && "Partial payment in advance"}
+                            {type === "partial" && "Pay part of remaining balance"}
+                            {type === "full" && "Pay complete remaining balance"}
+                            {type === "credit" && "Add to guest credit balance"}
+                          </div>
                         </Button>
                       ))}
                     </div>
@@ -239,6 +248,25 @@ export function PaymentDialog({
                 )}
               />
 
+              {/* Credit Payment Warning */}
+              {selectedPaymentType === "credit" && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-yellow-100 rounded-full p-1 mt-0.5">
+                      <span className="text-yellow-600 text-sm font-bold">!</span>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-yellow-800">Credit Payment Selected</h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        This amount will be added to the guest's credit balance. 
+                        The reservation will NOT be marked as paid until actual payment is received.
+                        Guest can use this credit for future reservations or bills.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Payment Method Selection */}
               <FormField
                 control={form.control}
@@ -246,6 +274,9 @@ export function PaymentDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Payment Method</FormLabel>
+                    <div className="text-sm text-muted-foreground mb-2">
+                      How will this payment be made?
+                    </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {(["cash", "card", "online", "bank-transfer"] as const).map((method) => (
                         <Button

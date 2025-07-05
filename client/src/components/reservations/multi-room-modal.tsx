@@ -23,7 +23,17 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
-import { z } from "zod";
+
+interface RoomData {
+  roomTypeId: string;
+  adults: number;
+  children: number;
+  checkInDate: string;
+  checkOutDate: string;
+  specialRequests: string;
+  ratePerNight: number;
+  totalAmount: number;
+}
 
 interface MultiRoomModalProps {
   isOpen: boolean;
@@ -55,18 +65,7 @@ export default function MultiRoomModal({
   const [isSearchingGuest, setIsSearchingGuest] = useState(false);
 
   const [selectedBranchId, setSelectedBranchId] = useState("");
-  const [rooms, setRooms] = useState([
-    {
-      roomTypeId: "",
-      checkInDate: "",
-      checkOutDate: "",
-      adults: 1,
-      children: 0,
-      specialRequests: "",
-      ratePerNight: 0,
-      totalAmount: 0,
-    },
-  ]);
+  const [rooms, setRooms] = useState<RoomData[]>([]);
 
   const { data: roomTypes } = useQuery({
     queryKey: ["/api/room-types"],
@@ -77,6 +76,80 @@ export default function MultiRoomModal({
     queryKey: ["/api/branches"],
     enabled: isOpen && !!user && user?.role === "superadmin",
   });
+
+  const { data: hotelSettings } = useQuery({
+    queryKey: ["/api/hotel-settings"],
+    enabled: isOpen && !!user,
+  });
+
+  const getCurrentDateTime = () => {
+    const timeZone = hotelSettings?.timeZone || 'Asia/Kathmandu';
+    const now = new Date();
+
+    // Format date according to timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+
+    const parts = formatter.formatToParts(now);
+    const year = parts.find(part => part.type === 'year')?.value;
+    const month = parts.find(part => part.type === 'month')?.value;
+    const day = parts.find(part => part.type === 'day')?.value;
+    const hour = parts.find(part => part.type === 'hour')?.value;
+    const minute = parts.find(part => part.type === 'minute')?.value;
+
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  };
+
+  const getDefaultCheckOut = () => {
+    const timeZone = hotelSettings?.timeZone || 'Asia/Kathmandu';
+    const now = new Date();
+    now.setDate(now.getDate() + 1); // Default to next day
+
+    // Format date according to timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+
+    const parts = formatter.formatToParts(now);
+    const year = parts.find(part => part.type === 'year')?.value;
+    const month = parts.find(part => part.type === 'month')?.value;
+    const day = parts.find(part => part.type === 'day')?.value;
+    const hour = parts.find(part => part.type === 'hour')?.value;
+    const minute = parts.find(part => part.type === 'minute')?.value;
+
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  };
+
+  // Initialize rooms when hotel settings are loaded
+  useEffect(() => {
+    if (hotelSettings && rooms.length === 0) {
+      setRooms([
+        {
+          roomTypeId: "",
+          adults: 1,
+          children: 0,
+          checkInDate: getCurrentDateTime(),
+          checkOutDate: getDefaultCheckOut(),
+          specialRequests: "",
+          ratePerNight: 0,
+          totalAmount: 0,
+        },
+      ]);
+    }
+  }, [hotelSettings]);
 
   const {
     data: availableRooms,
@@ -206,18 +279,20 @@ export default function MultiRoomModal({
     });
     setExistingGuest(null);
     setSelectedBranchId("");
-    setRooms([
-      {
-        roomTypeId: "",
-        checkInDate: "",
-        checkOutDate: "",
-        adults: 1,
-        children: 0,
-        specialRequests: "",
-        ratePerNight: 0,
-        totalAmount: 0,
-      },
-    ]);
+    if (hotelSettings) {
+      setRooms([
+        {
+          roomTypeId: "",
+          adults: 1,
+          children: 0,
+          checkInDate: getCurrentDateTime(),
+          checkOutDate: getDefaultCheckOut(),
+          specialRequests: "",
+          ratePerNight: 0,
+          totalAmount: 0,
+        },
+      ]);
+    }
   };
 
   const addRoom = () => {
@@ -225,10 +300,10 @@ export default function MultiRoomModal({
       ...rooms,
       {
         roomTypeId: "",
-        checkInDate: "",
-        checkOutDate: "",
         adults: 1,
         children: 0,
+        checkInDate: getCurrentDateTime(),
+        checkOutDate: getDefaultCheckOut(),
         specialRequests: "",
         ratePerNight: 0,
         totalAmount: 0,
@@ -290,7 +365,7 @@ export default function MultiRoomModal({
       return sum;
     }, 0);
     const subtotal = rooms.reduce((sum, room) => sum + room.totalAmount, 0);
-    const taxes = subtotal * 0.0; // 15% tax
+    const taxes = subtotal * 0.0; // 0% tax
     const total = subtotal + taxes;
 
     return { totalRooms, totalNights, subtotal, taxes, total };
@@ -352,8 +427,8 @@ export default function MultiRoomModal({
       },
       rooms: rooms.map((room) => ({
         roomId: parseInt(room.roomTypeId),
-        checkInDate: room.checkInDate,
-        checkOutDate: room.checkOutDate,
+        checkInDate: new Date(room.checkInDate),
+        checkOutDate: new Date(room.checkOutDate),
         adults: room.adults,
         children: room.children,
         ratePerNight: room.ratePerNight.toString(),
@@ -391,7 +466,7 @@ export default function MultiRoomModal({
           specialRequests: rr.specialRequests || "",
         })),
       );
-    } else if (!isEdit) {
+    } else if (!isEdit && hotelSettings) {
       // Reset form for new reservation
       setGuestData({
         firstName: "",
@@ -404,10 +479,10 @@ export default function MultiRoomModal({
       setRooms([
         {
           roomTypeId: "",
-          checkInDate: "",
-          checkOutDate: "",
           adults: 1,
           children: 0,
+          checkInDate: getCurrentDateTime(),
+          checkOutDate: getDefaultCheckOut(),
           ratePerNight: 0,
           totalAmount: 0,
           specialRequests: "",
@@ -418,7 +493,7 @@ export default function MultiRoomModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Room Reservation</DialogTitle>
         </DialogHeader>
@@ -521,7 +596,7 @@ export default function MultiRoomModal({
                 {existingGuest && (
                   <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
                     Found existing guest: {existingGuest.firstName}{" "}
-                    {existingGuest.lastName}(
+                    {existingGuest.lastName} (
                     {existingGuest.reservationCount || 0} previous reservations)
                   </div>
                 )}
@@ -593,7 +668,7 @@ export default function MultiRoomModal({
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <Label>Available Room *</Label>
                       {roomsError && (
@@ -608,7 +683,7 @@ export default function MultiRoomModal({
                         }
                         disabled={roomsLoading}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue
                             placeholder={
                               roomsLoading
@@ -655,27 +730,36 @@ export default function MultiRoomModal({
                         </div>
                       )}
                     </div>
-                    <div>
-                      <Label>Check-In Date *</Label>
-                      <Input
-                        type="date"
-                        value={room.checkInDate}
-                        onChange={(e) =>
-                          updateRoom(index, "checkInDate", e.target.value)
-                        }
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label>Check-Out Date *</Label>
-                      <Input
-                        type="date"
-                        value={room.checkOutDate}
-                        onChange={(e) =>
-                          updateRoom(index, "checkOutDate", e.target.value)
-                        }
-                        required
-                      />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor={`checkIn-${index}`}>
+                          Check-in Date & Time *
+                        </Label>
+                        <Input
+                          id={`checkIn-${index}`}
+                          type="datetime-local"
+                          value={room.checkInDate}
+                          onChange={(e) =>
+                            updateRoom(index, "checkInDate", e.target.value)
+                          }
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`checkOut-${index}`}>
+                          Check-out Date & Time *
+                        </Label>
+                        <Input
+                          id={`checkOut-${index}`}
+                          type="datetime-local"
+                          value={room.checkOutDate}
+                          onChange={(e) =>
+                            updateRoom(index, "checkOutDate", e.target.value)
+                          }
+                          required
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -688,7 +772,7 @@ export default function MultiRoomModal({
                           updateRoom(index, "adults", parseInt(value))
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -707,7 +791,7 @@ export default function MultiRoomModal({
                           updateRoom(index, "children", parseInt(value))
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -768,7 +852,7 @@ export default function MultiRoomModal({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Taxes & Fees (15%):</span>
+                <span className="text-gray-600">Taxes & Fees:</span>
                 <span className="font-medium">
                   Rs.{summary.taxes.toFixed(2)}
                 </span>

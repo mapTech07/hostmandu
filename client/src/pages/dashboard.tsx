@@ -157,7 +157,7 @@ export default function Dashboard() {
                             </div>
                             <div className="col-span-2">
                               <div className="text-muted-foreground">Today's Revenue</div>
-                              <div className="font-medium text-green-600">₨. {(branch.revenue || 0).toLocaleString()}</div>
+                              <div className="font-medium text-green-600">Rs. {(branch.revenue || 0).toLocaleString()}</div>
                             </div>
                           </div>
                         </CardContent>

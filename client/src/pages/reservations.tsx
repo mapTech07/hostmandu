@@ -288,7 +288,7 @@ export default function Reservations() {
             setIsMobileSidebarOpen(!isMobileSidebarOpen)
           }
         />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
           {/* Add Button Section */}
           <div className="mb-6">
             <Button
@@ -303,23 +303,24 @@ export default function Reservations() {
             <CardHeader>
               <CardTitle>All Reservations</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:p-6">
               {reservationsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               ) : (
-                <Table>
+                <div className="overflow-x-auto">
+                  <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Guest</TableHead>
-                      <TableHead>Confirmation</TableHead>
-                      <TableHead>Rooms</TableHead>
-                      <TableHead>Check-in</TableHead>
-                      <TableHead>Check-out</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead className="min-w-[150px]">Guest</TableHead>
+                      <TableHead className="min-w-[120px]">Confirmation</TableHead>
+                      <TableHead className="min-w-[100px]">Rooms</TableHead>
+                      <TableHead className="min-w-[140px]">Check-in</TableHead>
+                      <TableHead className="min-w-[140px]">Check-out</TableHead>
+                      <TableHead className="min-w-[100px]">Status</TableHead>
+                      <TableHead className="min-w-[100px]">Total</TableHead>
+                      <TableHead className="min-w-[200px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -358,13 +359,13 @@ export default function Reservations() {
                           <TableCell>
                             {reservation.reservationRooms.length > 0 && (
                               <div>
-                                <div>
-                                  {formatDate(
+                                <div className="text-sm">
+                                  {formatDateTime(
                                     reservation.reservationRooms[0].checkInDate,
                                   )}
                                 </div>
                                 {reservation.reservationRooms.length > 1 && (
-                                  <div className="text-sm text-gray-500">
+                                  <div className="text-xs text-gray-500">
                                     +{reservation.reservationRooms.length - 1}{" "}
                                     more
                                   </div>
@@ -375,13 +376,13 @@ export default function Reservations() {
                           <TableCell>
                             {reservation.reservationRooms.length > 0 && (
                               <div>
-                                <div>
-                                  {formatDate(
+                                <div className="text-sm">
+                                  {formatDateTime(
                                     reservation.reservationRooms[0]
                                       .checkOutDate,
                                   )}
                                 </div>
-                                <div className="text-sm text-gray-500">
+                                <div className="text-xs text-gray-500">
                                   {calculateNights(
                                     reservation.reservationRooms[0].checkInDate,
                                     reservation.reservationRooms[0]
@@ -463,6 +464,7 @@ export default function Reservations() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

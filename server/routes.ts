@@ -719,21 +719,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdById: user.id,
       };
 
+      // Convert date strings to Date objects in roomsData
+      const roomsDataWithDates = roomsData.map(room => ({
+        ...room,
+        checkInDate: new Date(room.checkInDate),
+        checkOutDate: new Date(room.checkOutDate),
+        actualCheckIn: room.actualCheckIn ? new Date(room.actualCheckIn) : null,
+        actualCheckOut: room.actualCheckOut ? new Date(room.actualCheckOut) : null,
+      }));
+
       const reservation = await storage.createReservation(
         reservationWithConfirmation,
-        roomsData,
+        roomsDataWithDates,
       );
       broadcastChange('reservations', 'created', reservation); // Broadcast change
 
       // Update room status to reserved
-      for (const roomData of roomsData) {
+      for (const roomData of roomsDataWithDates) {
         await storage.updateRoom(roomData.roomId, { status: "reserved" });
       }
 
       // Send new reservation notification
       try {
         const branch = await storage.getBranch(reservationData.branchId);
-        const room = await storage.getRoom(roomsData[0].roomId);
+        const room = await storage.getRoom(roomsDataWithDates[0].roomId);
         const roomType = await storage.getRoomType(room?.roomTypeId || 0);
 
         if (branch && room && roomType) {
@@ -742,8 +751,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             { ...room, roomType },
             branch,
             reservation.id,
-            roomsData[0].checkInDate,
-            roomsData[0].checkOutDate
+            roomsDataWithDates[0].checkInDate,
+            roomsDataWithDates[0].checkOutDate
           );
           console.log(`📧 New reservation notification sent for reservation ${reservation.id}`);
         }
@@ -945,15 +954,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const payment = await storage.createPayment(paymentData);
       
-      // Update reservation's paid amount based on all completed payments
+      // Handle credit payment type - update guest credit balance
+      if (paymentData.paymentType === 'credit') {
+        const guest = await storage.getGuest(reservation.guestId);
+        if (guest) {
+          const currentCredit = parseFloat(guest.creditBalance?.toString() || '0');
+          const newCreditBalance = currentCredit + parseFloat(paymentData.amount.toString());
+          
+          await storage.updateGuest(reservation.guestId, {
+            creditBalance: newCreditBalance.toString()
+          });
+          
+          console.log(`💳 Added Rs. ${paymentData.amount} credit to guest ${guest.firstName} ${guest.lastName}. New balance: Rs. ${newCreditBalance}`);
+          broadcastChange('guests', 'updated', { id: reservation.guestId, creditBalance: newCreditBalance });
+        }
+      }
+      
+      // Update reservation's paid amount based on all completed payments (excluding credit payments)
       const allPayments = await storage.getPaymentsByReservation(reservationId);
       const totalPaid = allPayments
-        .filter(p => p.status === 'completed')
+        .filter(p => p.status === 'completed' && p.paymentType !== 'credit')
         .reduce((sum, p) => sum + parseFloat(p.amount.toString()), 0);
       
-      await storage.updateReservation(reservationId, { 
+      const totalAmount = parseFloat(reservation.totalAmount.toString());
+      const updatedReservation = await storage.updateReservation(reservationId, { 
         paidAmount: totalPaid.toString() 
       });
+      
+      // Check if payment is complete and automatically check out
+      if (totalPaid >= totalAmount && reservation.status === 'checked-in') {
+        console.log(`💰 Payment complete for reservation ${reservationId}. Auto-checking out...`);
+        
+        // Auto-checkout the reservation
+        await storage.updateReservation(reservationId, { 
+          status: 'checked-out' 
+        });
+        
+        // Update room status to available
+        for (const roomReservation of reservation.reservationRooms) {
+          await storage.updateRoom(roomReservation.roomId, { status: 'available' });
+        }
+        
+        // Send checkout notification
+        try {
+          const branch = await storage.getBranch(reservation.branchId);
+          const firstRoom = reservation.reservationRooms[0];
+          
+          if (branch && firstRoom) {
+            await NotificationService.sendCheckOutNotification(
+              reservation.guest,
+              firstRoom.room,
+              branch,
+              reservationId
+            );
+            console.log(`✅ Auto-checkout notification sent for reservation ${reservationId}`);
+          }
+        } catch (notificationError) {
+          console.error("Failed to send auto-checkout notification:", notificationError);
+        }
+        
+        broadcastChange('reservations', 'updated', { id: reservationId, status: 'checked-out', paidAmount: totalPaid });
+      } else if (totalPaid > totalAmount) {
+        // Handle overpayment as credit
+        const creditAmount = totalPaid - totalAmount;
+        const guest = await storage.getGuest(reservation.guestId);
+        if (guest) {
+          const currentCredit = parseFloat(guest.creditBalance?.toString() || '0');
+          
+          await storage.updateGuest(reservation.guestId, {
+            creditBalance: (currentCredit + creditAmount).toString()
+          });
+          
+          console.log(`💳 Added Rs. ${creditAmount} credit to guest ${guest.firstName} ${guest.lastName}`);
+          broadcastChange('guests', 'updated', { id: reservation.guestId, creditBalance: currentCredit + creditAmount });
+        }
+      }
       
       broadcastChange('payments', 'created', payment);
       broadcastChange('reservations', 'updated', { id: reservationId, paidAmount: totalPaid });
@@ -1004,14 +1079,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .filter(p => p.status === 'completed')
           .reduce((sum, p) => sum + parseFloat(p.amount.toString()), 0);
         
+        const reservation = await storage.getReservation(payment.reservationId);
+        if (!reservation) {
+          return res.status(404).json({ message: "Reservation not found" });
+        }
+        
+        const totalAmount = parseFloat(reservation.totalAmount.toString());
+        
         await storage.updateReservation(payment.reservationId, { 
           paidAmount: totalPaid.toString() 
         });
         
-        broadcastChange('reservations', 'updated', { 
-          id: payment.reservationId, 
-          paidAmount: totalPaid 
-        });
+        // Check if payment is complete and automatically check out
+        if (totalPaid >= totalAmount && reservation.status === 'checked-in') {
+          console.log(`💰 Payment complete for reservation ${payment.reservationId}. Auto-checking out...`);
+          
+          // Auto-checkout the reservation
+          await storage.updateReservation(payment.reservationId, { 
+            status: 'checked-out' 
+          });
+          
+          // Update room status to available
+          for (const roomReservation of reservation.reservationRooms) {
+            await storage.updateRoom(roomReservation.roomId, { status: 'available' });
+          }
+          
+          // Send checkout notification
+          try {
+            const branch = await storage.getBranch(reservation.branchId);
+            const firstRoom = reservation.reservationRooms[0];
+            
+            if (branch && firstRoom) {
+              await NotificationService.sendCheckOutNotification(
+                reservation.guest,
+                firstRoom.room,
+                branch,
+                payment.reservationId
+              );
+              console.log(`✅ Auto-checkout notification sent for reservation ${payment.reservationId}`);
+            }
+          } catch (notificationError) {
+            console.error("Failed to send auto-checkout notification:", notificationError);
+          }
+          
+          broadcastChange('reservations', 'updated', { 
+            id: payment.reservationId, 
+            status: 'checked-out',
+            paidAmount: totalPaid 
+          });
+        } else if (totalPaid > totalAmount) {
+          // Handle overpayment as credit
+          const creditAmount = totalPaid - totalAmount;
+          const guest = await storage.getGuest(reservation.guestId);
+          if (guest) {
+            const currentCredit = parseFloat(guest.creditBalance?.toString() || '0');
+            
+            await storage.updateGuest(reservation.guestId, {
+              creditBalance: (currentCredit + creditAmount).toString()
+            });
+            
+            console.log(`💳 Added Rs. ${creditAmount} credit to guest ${guest.firstName} ${guest.lastName}`);
+            broadcastChange('guests', 'updated', { id: reservation.guestId, creditBalance: currentCredit + creditAmount });
+          }
+          broadcastChange('reservations', 'updated', { 
+            id: payment.reservationId, 
+            paidAmount: totalPaid 
+          });
+        } else {
+          broadcastChange('reservations', 'updated', { 
+            id: payment.reservationId, 
+            paidAmount: totalPaid 
+          });
+        }
       }
       
       broadcastChange('payments', 'updated', payment);
